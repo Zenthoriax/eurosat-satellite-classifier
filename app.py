@@ -9,6 +9,7 @@ from pathlib import Path
 import gradio as gr
 import numpy as np
 from PIL import Image
+import spaces
 from supabase import Client, create_client
 
 try:
@@ -92,10 +93,7 @@ def _save_to_supabase(
     return storage_path
 
 
-def classify_patch(pil_img: Image.Image | None, filename: str = "uploaded_patch.jpg"):
-    if pil_img is None:
-        return None, {}, "Please upload a satellite patch image or click **Test Random Input**."
-
+def _predict_and_log(pil_img: Image.Image, filename: str):
     rgb_img = pil_img.convert("RGB")
     resized = rgb_img.resize((64, 64))
 
@@ -110,6 +108,14 @@ def classify_patch(pil_img: Image.Image | None, filename: str = "uploaded_patch.
     return resized, prob_dict, status
 
 
+@spaces.GPU
+def classify_patch(pil_img: Image.Image | None, filename: str = "uploaded_patch.jpg"):
+    if pil_img is None:
+        return None, {}, "Please upload a satellite patch image or click **Test Random Input**."
+    return _predict_and_log(pil_img, filename)
+
+
+@spaces.GPU
 def test_random_input():
     candidates: list[tuple[str, Path]] = []
     for root_candidate in [
@@ -125,11 +131,10 @@ def test_random_input():
     if candidates:
         true_label, chosen_path = random.choice(candidates)
         img = Image.open(chosen_path).convert("RGB")
-        resized, prob_dict, status = classify_patch(img, chosen_path.name)
+        resized, prob_dict, status = _predict_and_log(img, chosen_path.name)
         extra = f"\n**Sample file:** `{chosen_path.name}` · **Ground truth:** `{true_label}`"
         return resized, prob_dict, status + extra
 
-    # Fallback when dataset/ is not pushed to the Space: pull a test_data row and generate a 64x64 patch
     db_label = None
     db_file = None
     try:
@@ -143,8 +148,12 @@ def test_random_input():
 
     synth_arr = np.random.randint(0, 256, size=(64, 64, 3), dtype=np.uint8)
     synth_img = Image.fromarray(synth_arr, mode="RGB")
-    resized, prob_dict, status = classify_patch(synth_img, db_file or "random_sample.jpg")
-    info_line = f"\n**Sample source:** `test_data` (`{db_file}`, true label: `{db_label}`)" if db_file else "\n**Sample source:** Synthetic 64x64 patch"
+    resized, prob_dict, status = _predict_and_log(synth_img, db_file or "random_sample.jpg")
+    info_line = (
+        f"\n**Sample source:** `test_data` (`{db_file}`, true label: `{db_label}`)"
+        if db_file
+        else "\n**Sample source:** Synthetic 64x64 patch"
+    )
     return resized, prob_dict, status + info_line
 
 
