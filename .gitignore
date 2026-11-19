@@ -1,6 +1,6 @@
+dataset/
 .env
 __pycache__/
 *.pyc
-dataset/
-*.zip
-dataset/
+.venv/
+venv/
