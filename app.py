@@ -8,7 +8,6 @@ from pathlib import Path
 import gradio as gr
 import numpy as np
 from PIL import Image
-import spaces
 from supabase import Client, create_client
 
 try:
@@ -107,7 +106,6 @@ def _predict_and_log(pil_img: Image.Image, filename: str):
     return resized, prob_dict, status
 
 
-@spaces.GPU
 def classify_patch(pil_img: Image.Image | None, filename: str = "uploaded_patch.jpg"):
     if pil_img is None:
         return None, {}, "Please upload a satellite patch image to classify."
