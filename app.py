@@ -5,7 +5,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-import gradio as gr
+from dotenv import load_dotenv
+from flask import Flask, jsonify, render_template, request
 import numpy as np
 from PIL import Image
 from supabase import Client, create_client
@@ -15,6 +16,8 @@ try:
 except ImportError:
     import tensorflow as tf
     Interpreter = tf.lite.Interpreter
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "satellite_model.tflite"
@@ -26,7 +29,7 @@ BUCKET_NAME = (os.getenv("SUPABASE_BUCKET") or "satellite-patches").strip()
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
     raise ValueError(
-        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment variables/secrets."
+        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment variables."
     )
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -38,6 +41,8 @@ interpreter = Interpreter(model_path=str(MODEL_PATH))
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
+
+app = Flask(__name__)
 
 
 def _run_tflite(resized_img: Image.Image) -> tuple[dict[str, float], str, float]:
@@ -91,30 +96,40 @@ def _save_to_supabase(
     return storage_path
 
 
-def _predict_and_log(pil_img: Image.Image, filename: str):
-    rgb_img = pil_img.convert("RGB")
-    resized = rgb_img.resize((64, 64))
+@app.get("/")
+def index():
+    return render_template("index.html", bucket_name=BUCKET_NAME)
+
+
+@app.post("/api/classify")
+def api_classify():
+    file = request.files.get("image")
+    if file is None or not file.filename:
+        return jsonify({"error": "Please upload a satellite patch image."}), 400
+
+    pil_img = Image.open(file.stream).convert("RGB")
+    resized = pil_img.resize((64, 64))
 
     prob_dict, top_label, top_conf = _run_tflite(resized)
-    storage_path = _save_to_supabase(resized, filename, top_label, top_conf, prob_dict)
+    storage_path = _save_to_supabase(resized, file.filename, top_label, top_conf, prob_dict)
 
-    status = (
-        f"**Predicted:** `{top_label}` (**{top_conf * 100:.2f}%**)  \n"
-        f"**Stored in bucket `{BUCKET_NAME}`:** `{storage_path}`  \n"
-        f"**Logged to table:** `uploaded_patches`"
+    sorted_probs = sorted(prob_dict.items(), key=lambda kv: kv[1], reverse=True)
+    return jsonify(
+        {
+            "predicted_label": top_label,
+            "confidence": round(top_conf, 4),
+            "confidence_pct": round(top_conf * 100, 2),
+            "storage_path": storage_path,
+            "bucket": BUCKET_NAME,
+            "probabilities": [{"label": k, "score": round(v, 4)} for k, v in sorted_probs],
+        }
     )
-    return resized, prob_dict, status
 
 
-def classify_patch(pil_img: Image.Image | None, filename: str = "uploaded_patch.jpg"):
-    if pil_img is None:
-        return None, {}, "Please upload a satellite patch image to classify."
-    return _predict_and_log(pil_img, filename)
-
-
-def fetch_table_dataframe(table_name: str):
+@app.get("/api/table/<table_name>")
+def api_table(table_name: str):
     if table_name not in {"uploaded_patches", "training_data", "test_data"}:
-        return gr.update(value=[], headers=[])
+        return jsonify({"error": "Invalid table name."}), 400
 
     order_col = "created_at" if table_name == "uploaded_patches" else "id"
     res = (
@@ -125,61 +140,12 @@ def fetch_table_dataframe(table_name: str):
         .execute()
     )
     rows = res.data or []
-    if not rows:
-        return gr.update(value=[], headers=["status"])
-
     hidden_cols = {"all_probabilities", "storage_path", "user_id"}
-    headers = [col for col in rows[0].keys() if col not in hidden_cols]
-    values = [[row.get(col) for col in headers] for row in rows]
-    return gr.update(value=values, headers=headers)
+    headers = [col for col in rows[0].keys() if col not in hidden_cols] if rows else []
+    clean_rows = [{k: row.get(k) for k in headers} for row in rows]
+    return jsonify({"headers": headers, "rows": clean_rows})
 
-
-with gr.Blocks(title="EuroSAT Satellite Patch Classifier") as demo:
-    gr.Markdown(
-        "# EuroSAT Satellite Patch Classifier\n"
-        "MobileNetV2 (TFLite) land-cover classification backed by Supabase Storage & Postgres."
-    )
-
-    with gr.Row():
-        with gr.Column():
-            patch_input = gr.Image(type="pil", label="Satellite Patch (64x64 RGB)")
-            classify_btn = gr.Button("Classify Patch", variant="primary")
-            status_box = gr.Markdown("Ready.")
-
-        with gr.Column():
-            probs_output = gr.Label(num_top_classes=10, label="Class Probabilities")
-
-    classify_btn.click(
-        fn=classify_patch,
-        inputs=[patch_input],
-        outputs=[patch_input, probs_output, status_box],
-    )
-
-    gr.Markdown("## Supabase Database Explorer")
-    with gr.Row():
-        table_choice = gr.Radio(
-            choices=["uploaded_patches", "training_data", "test_data"],
-            value="uploaded_patches",
-            label="Table",
-        )
-        refresh_btn = gr.Button("Refresh Table")
-
-    table_display = gr.Dataframe(
-        value=fetch_table_dataframe("uploaded_patches")["value"],
-        headers=fetch_table_dataframe("uploaded_patches")["headers"],
-        interactive=False,
-    )
-
-    table_choice.change(
-        fn=fetch_table_dataframe,
-        inputs=[table_choice],
-        outputs=[table_display],
-    )
-    refresh_btn.click(
-        fn=fetch_table_dataframe,
-        inputs=[table_choice],
-        outputs=[table_display],
-    )
 
 if __name__ == "__main__":
-    demo.launch()
+    port = int(os.getenv("PORT", "8000"))
+    app.run(host="0.0.0.0", port=port)    

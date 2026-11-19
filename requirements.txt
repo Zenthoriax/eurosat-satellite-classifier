@@ -1,5 +1,7 @@
-gradio
-pillow
+flask==3.1.0
+gunicorn==23.0.0
 numpy
+pillow
+python-dotenv
 supabase
 tensorflow-cpu
