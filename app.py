@@ -1,7 +1,6 @@
 import io
 import json
 import os
-import random
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -111,50 +110,8 @@ def _predict_and_log(pil_img: Image.Image, filename: str):
 @spaces.GPU
 def classify_patch(pil_img: Image.Image | None, filename: str = "uploaded_patch.jpg"):
     if pil_img is None:
-        return None, {}, "Please upload a satellite patch image or click **Test Random Input**."
+        return None, {}, "Please upload a satellite patch image to classify."
     return _predict_and_log(pil_img, filename)
-
-
-@spaces.GPU
-def test_random_input():
-    candidates: list[tuple[str, Path]] = []
-    for root_candidate in [
-        BASE_DIR / "dataset" / "EuroSAT_RGB" / "EuroSAT_RGB",
-        BASE_DIR / "dataset" / "EuroSAT_RGB",
-    ]:
-        if root_candidate.exists():
-            for cls_dir in sorted(root_candidate.iterdir()):
-                if cls_dir.is_dir() and cls_dir.name in CLASS_NAMES:
-                    for img_path in cls_dir.glob("*.jpg"):
-                        candidates.append((cls_dir.name, img_path))
-
-    if candidates:
-        true_label, chosen_path = random.choice(candidates)
-        img = Image.open(chosen_path).convert("RGB")
-        resized, prob_dict, status = _predict_and_log(img, chosen_path.name)
-        extra = f"\n**Sample file:** `{chosen_path.name}` · **Ground truth:** `{true_label}`"
-        return resized, prob_dict, status + extra
-
-    db_label = None
-    db_file = None
-    try:
-        res = supabase.table("test_data").select("filename, true_label").limit(100).execute()
-        if res.data:
-            picked = random.choice(res.data)
-            db_file = picked.get("filename")
-            db_label = picked.get("true_label")
-    except Exception:
-        pass
-
-    synth_arr = np.random.randint(0, 256, size=(64, 64, 3), dtype=np.uint8)
-    synth_img = Image.fromarray(synth_arr, mode="RGB")
-    resized, prob_dict, status = _predict_and_log(synth_img, db_file or "random_sample.jpg")
-    info_line = (
-        f"\n**Sample source:** `test_data` (`{db_file}`, true label: `{db_label}`)"
-        if db_file
-        else "\n**Sample source:** Synthetic 64x64 patch"
-    )
-    return resized, prob_dict, status + info_line
 
 
 def fetch_table_dataframe(table_name: str):
@@ -188,9 +145,7 @@ with gr.Blocks(title="EuroSAT Satellite Patch Classifier") as demo:
     with gr.Row():
         with gr.Column():
             patch_input = gr.Image(type="pil", label="Satellite Patch (64x64 RGB)")
-            with gr.Row():
-                classify_btn = gr.Button("Classify Patch", variant="primary")
-                random_btn = gr.Button("Test Random Input")
+            classify_btn = gr.Button("Classify Patch", variant="primary")
             status_box = gr.Markdown("Ready.")
 
         with gr.Column():
@@ -199,11 +154,6 @@ with gr.Blocks(title="EuroSAT Satellite Patch Classifier") as demo:
     classify_btn.click(
         fn=classify_patch,
         inputs=[patch_input],
-        outputs=[patch_input, probs_output, status_box],
-    )
-    random_btn.click(
-        fn=test_random_input,
-        inputs=[],
         outputs=[patch_input, probs_output, status_box],
     )
 
