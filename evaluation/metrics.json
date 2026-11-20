@@ -1,0 +1,164 @@
+{
+  "n_test": 5400,
+  "accuracy": 0.9003703703703704,
+  "top3_accuracy": 0.9853703703703703,
+  "macro": {
+    "precision": 0.9105121237749432,
+    "recall": 0.8950666666666667,
+    "f1": 0.8987015838120176
+  },
+  "weighted": {
+    "precision": 0.9091921955822069,
+    "recall": 0.9003703703703704,
+    "f1": 0.9007903967031273
+  },
+  "cohen_kappa": 0.8890310653430251,
+  "matthews_corrcoef": 0.8898966798338137,
+  "mean_confidence": 0.9663371443748474,
+  "mean_confidence_correct": 0.9810258150100708,
+  "mean_confidence_incorrect": 0.8335928916931152,
+  "per_class": {
+    "AnnualCrop": {
+      "precision": 0.8647798742138365,
+      "recall": 0.9166666666666666,
+      "f1": 0.889967637540453,
+      "support": 600,
+      "accuracy_pct": 91.66666666666666
+    },
+    "Forest": {
+      "precision": 0.9869402985074627,
+      "recall": 0.8816666666666667,
+      "f1": 0.9313380281690141,
+      "support": 600,
+      "accuracy_pct": 88.16666666666667
+    },
+    "HerbaceousVegetation": {
+      "precision": 0.7944827586206896,
+      "recall": 0.96,
+      "f1": 0.8694339622641509,
+      "support": 600,
+      "accuracy_pct": 96.0
+    },
+    "Highway": {
+      "precision": 0.9840848806366048,
+      "recall": 0.742,
+      "f1": 0.8460661345496009,
+      "support": 500,
+      "accuracy_pct": 74.2
+    },
+    "Industrial": {
+      "precision": 0.9867256637168141,
+      "recall": 0.892,
+      "f1": 0.9369747899159664,
+      "support": 500,
+      "accuracy_pct": 89.2
+    },
+    "Pasture": {
+      "precision": 0.9295774647887324,
+      "recall": 0.825,
+      "f1": 0.8741721854304636,
+      "support": 400,
+      "accuracy_pct": 82.5
+    },
+    "PermanentCrop": {
+      "precision": 0.7739130434782608,
+      "recall": 0.89,
+      "f1": 0.827906976744186,
+      "support": 500,
+      "accuracy_pct": 89.0
+    },
+    "Residential": {
+      "precision": 0.9710884353741497,
+      "recall": 0.9516666666666667,
+      "f1": 0.9612794612794613,
+      "support": 600,
+      "accuracy_pct": 95.16666666666667
+    },
+    "River": {
+      "precision": 0.9304703476482618,
+      "recall": 0.91,
+      "f1": 0.9201213346814965,
+      "support": 500,
+      "accuracy_pct": 91.0
+    },
+    "SeaLake": {
+      "precision": 0.8830584707646177,
+      "recall": 0.9816666666666667,
+      "f1": 0.9297553275453828,
+      "support": 600,
+      "accuracy_pct": 98.16666666666667
+    }
+  },
+  "latency_ms": {
+    "mean": 0.8174622775900557,
+    "median": 0.782150003942661,
+    "p95": 1.0463899932801726,
+    "p99": 1.269220001995564,
+    "min": 0.6331999902613461,
+    "max": 3.4217999782413244,
+    "note": "Interpreter set_tensor+invoke+get_tensor only, batch size 1, CPU; excludes image decoding. Hardware dependent."
+  },
+  "model_size_mb": 8.521507263183594,
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratified": true
+  },
+  "environment": {
+    "platform": "Windows-10-10.0.26300-SP0",
+    "python": "3.11.18",
+    "processor": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD"
+  },
+  "top_confusions": [
+    {
+      "count": 44,
+      "true": "Forest",
+      "predicted": "SeaLake"
+    },
+    {
+      "count": 42,
+      "true": "PermanentCrop",
+      "predicted": "HerbaceousVegetation"
+    },
+    {
+      "count": 41,
+      "true": "Highway",
+      "predicted": "PermanentCrop"
+    },
+    {
+      "count": 34,
+      "true": "Industrial",
+      "predicted": "PermanentCrop"
+    },
+    {
+      "count": 32,
+      "true": "AnnualCrop",
+      "predicted": "PermanentCrop"
+    },
+    {
+      "count": 27,
+      "true": "Highway",
+      "predicted": "River"
+    },
+    {
+      "count": 25,
+      "true": "Pasture",
+      "predicted": "HerbaceousVegetation"
+    },
+    {
+      "count": 21,
+      "true": "Residential",
+      "predicted": "HerbaceousVegetation"
+    },
+    {
+      "count": 21,
+      "true": "Pasture",
+      "predicted": "AnnualCrop"
+    },
+    {
+      "count": 21,
+      "true": "Forest",
+      "predicted": "HerbaceousVegetation"
+    }
+  ]
+}

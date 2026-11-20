@@ -1,0 +1,46 @@
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Metric} & \textbf{Value}\\
+\midrule
+Test images & 5{,}400\\
+Accuracy (top-1) & 90.04\%\\
+Top-3 accuracy & 98.54\%\\
+Macro precision & 91.05\%\\
+Macro recall & 89.51\%\\
+Macro F1 & 89.87\%\\
+Weighted F1 & 90.08\%\\
+Cohen's $\kappa$ & 0.8890\\
+Matthews corr.\ coef. & 0.8899\\
+Mean latency (ms/image, CPU, batch 1) & 0.82\\
+Median latency (ms) & 0.78\\
+95th percentile latency (ms) & 1.05\\
+Model size (MB) & 8.522\\
+\bottomrule
+\end{tabular}
+\caption{Aggregate evaluation of \texttt{satellite\_model.tflite} on the held-out EuroSAT test split.}
+\label{tab:eval-aggregate}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+\textbf{Class} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{Support}\\
+\midrule
+AnnualCrop & 0.8648 & 0.9167 & 0.8900 & 600\\
+Forest & 0.9869 & 0.8817 & 0.9313 & 600\\
+HerbaceousVegetation & 0.7945 & 0.9600 & 0.8694 & 600\\
+Highway & 0.9841 & 0.7420 & 0.8461 & 500\\
+Industrial & 0.9867 & 0.8920 & 0.9370 & 500\\
+Pasture & 0.9296 & 0.8250 & 0.8742 & 400\\
+PermanentCrop & 0.7739 & 0.8900 & 0.8279 & 500\\
+Residential & 0.9711 & 0.9517 & 0.9613 & 600\\
+River & 0.9305 & 0.9100 & 0.9201 & 500\\
+SeaLake & 0.8831 & 0.9817 & 0.9298 & 600\\
+\bottomrule
+\end{tabular}
+\caption{Per-class precision, recall, F1 and support.}
+\label{tab:eval-per-class}
+\end{table}
